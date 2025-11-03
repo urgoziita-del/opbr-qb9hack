@@ -26,7 +26,7 @@
     <p>以下のボタンを押して認証してください。</p>
     <a id="login-btn" 
        class="button"
-       href="https://discord.com/oauth2/authorize?client_id=1434614207986274364&redirect_uri=https%3A%2F%2Furgoziita-del.github.io%2Fopbr-qb9hack%2Findex.html&response_type=token&scope=identify%20guilds">
+       href="https://discord.com/oauth2/authorize?client_id=1434614207986274364&redirect_uri=https%3A%2F%2Furgoziita-del.github.io%2Fopbr-qb9hack%2F%E3%83%86%E3%82%B9%E3%83%88.html&response_type=token&scope=identify%20guilds">
        Discordでログイン
     </a>
   </div>
@@ -35,7 +35,7 @@
     // --- あなたのサーバーID ---
     const TARGET_GUILD_ID = "1431917745418670111";
 
-    // --- 認証後（トークン付きURL）なら処理を実行 ---
+    // --- 認証後のトークン解析 ---
     function parseHash() {
       const h = location.hash.replace(/^#/, '');
       if (!h) return null;
@@ -49,37 +49,39 @@
 
     async function checkUser() {
       const token = parseHash();
-      if (!token || !token.access_token) return; // 通常時はそのまま
+      if (!token || !token.access_token) return;
 
       document.getElementById("title").innerText = "認証情報を確認中…";
       document.getElementById("content").innerHTML = "お待ちください…";
 
-      // ユーザー情報取得
-      const userResp = await fetch("https://discord.com/api/users/@me", {
-        headers: { Authorization: `${token.token_type} ${token.access_token}` }
-      });
-      const user = await userResp.json();
+      try {
+        const userResp = await fetch("https://discord.com/api/users/@me", {
+          headers: { Authorization: `${token.token_type} ${token.access_token}` }
+        });
+        const user = await userResp.json();
 
-      // サーバー所属確認
-      const guildsResp = await fetch("https://discord.com/api/users/@me/guilds", {
-        headers: { Authorization: `${token.token_type} ${token.access_token}` }
-      });
-      const guilds = await guildsResp.json();
+        const guildsResp = await fetch("https://discord.com/api/users/@me/guilds", {
+          headers: { Authorization: `${token.token_type} ${token.access_token}` }
+        });
+        const guilds = await guildsResp.json();
 
-      const inGuild = guilds.some(g => g.id === TARGET_GUILD_ID);
+        const inGuild = Array.isArray(guilds) && guilds.some(g => g.id === TARGET_GUILD_ID);
 
-      if (inGuild) {
-        document.getElementById("title").innerText = "✅ 認証成功！";
-        document.getElementById("content").innerHTML = `
-          <p><strong>${user.username}#${user.discriminator}</strong> さんはこのサーバーに参加しています。</p>
-          <p>ID: ${user.id}</p>
-        `;
-      } else {
-        document.getElementById("title").innerText = "❌ 認証失敗";
-        document.getElementById("content").innerHTML = `
-          <p>このアカウントはサーバーに参加していません。</p>
-          <p><a class="button" href="https://t.co/UHWa0OqGKt">サーバーに参加する</a></p>
-        `;
+        if (inGuild) {
+          document.getElementById("title").innerText = "✅ 認証成功！";
+          document.getElementById("content").innerHTML = `
+            <p><strong>${user.username}#${user.discriminator}</strong> さんはこのサーバーに参加しています。</p>
+            <p>ID: ${user.id}</p>
+          `;
+        } else {
+          document.getElementById("title").innerText = "❌ 認証失敗";
+          document.getElementById("content").innerHTML = `
+            <p>このアカウントはサーバーに参加していません。</p>
+            <p><a class="button" href="https://t.co/UHWa0OqGKt">サーバーに参加する</a></p>
+          `;
+        }
+      } catch (err) {
+        document.getElementById("content").innerText = "エラー: " + err;
       }
     }
 
