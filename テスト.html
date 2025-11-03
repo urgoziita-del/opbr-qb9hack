@@ -2,33 +2,67 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Discord ログイン（テスト）</title>
+  <title>Discord 認証結果</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
-<body style="font-family:sans-serif;text-align:center;padding:60px;">
-  <h1>Discordでログイン（テスト）</h1>
-  <p>以下のボタンからDiscordで認証してください。</p>
-
-  <a id="login" href=""
-     style="display:inline-block;padding:12px 20px;background:#5865F2;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
-    Discordでログイン
-  </a>
-
-  <p style="margin-top:24px;color:#666;font-size:14px;">
-    ※ テスト用（アクセストークンがブラウザに渡ります）。本番はサーバー経由で実装してください。
-  </p>
+<body style="font-family:sans-serif;text-align:center;padding:40px;">
+  <h1>認証結果</h1>
+  <div id="box" style="margin-top:20px;color:#333;">
+    <p id="status">認証情報を確認中...</p>
+  </div>
 
   <script>
-    const CLIENT_ID = "1434614207986274364";
-    const REDIRECT = "https://urgoziita-del.github.io/opbr-qb9hack/テスト.html";
-    const SCOPE = "identify"; // ユーザーID・ユーザー名が取れる最低限
-    // implicit flow: response_type=token (アクセストークンがURLハッシュで返る)
-    const url = "https://discord.com/oauth2/authorize"
-      + "?client_id=" + encodeURIComponent(CLIENT_ID)
-      + "&redirect_uri=" + encodeURIComponent(REDIRECT)
-      + "&response_type=token"
-      + "&scope=" + encodeURIComponent(SCOPE);
-    document.getElementById("login").href = url;
+    function parseHash(hash) {
+      // #access_token=...&token_type=Bearer&expires_in=...
+      if (!hash) return null;
+      const h = hash.replace(/^#/, '');
+      const params = new URLSearchParams(h);
+      const token = params.get('access_token');
+      return token;
+    }
+
+    async function fetchUser(token) {
+      const res = await fetch('https://discord.com/api/users/@me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        throw new Error('Discord API エラー: ' + res.status);
+      }
+      return await res.json();
+    }
+
+    (async () => {
+      try {
+        const token = parseHash(window.location.hash);
+        if (!token) {
+          document.getElementById('status').textContent = '認証コード（access_token）が見つかりません。ログインからやり直してください。';
+          return;
+        }
+
+        document.getElementById('status').textContent = 'アクセストークン取得済み。Discordからユーザー情報を取得中...';
+
+        const user = await fetchUser(token);
+
+        // 簡単に表示
+        const box = document.getElementById('box');
+        box.innerHTML = `
+          <p style="font-size:18px;margin:8px 0;">✅ 認証完了</p>
+          <p>ユーザー名: <b>${escapeHtml(user.username)}#${escapeHtml(user.discriminator)}</b></p>
+          <p>Discord ID: <b>${escapeHtml(user.id)}</b></p>
+          <p><img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" width="120" alt="avatar" style="border-radius:10px;margin-top:12px;"></p>
+          <p style="color:#666;margin-top:18px;font-size:13px;">（注意）このアクセストークンはブラウザに表示されています。公開環境ではサーバー実装を。</p>
+        `;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('status').textContent = 'エラーが発生しました。コンソールを確認してください。';
+      }
+    })();
+
+    // XSS対策に最低限のエスケープ
+    function escapeHtml(s) {
+      if (!s) return '';
+      return s.replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+    }
   </script>
 </body>
 </html>
