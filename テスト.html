@@ -1,62 +1,34 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>認証結果</title>
+  <meta charset="utf-8" />
+  <title>Discord ログイン（テスト）</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
-<body style="text-align:center; margin-top:100px; font-family:sans-serif;">
-  <h2>Discord認証結果</h2>
-  <p id="status">認証情報を取得中...</p>
+<body style="font-family:sans-serif;text-align:center;padding:60px;">
+  <h1>Discordでログイン（テスト）</h1>
+  <p>以下のボタンからDiscordで認証してください。</p>
+
+  <a id="login" href=""
+     style="display:inline-block;padding:12px 20px;background:#5865F2;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
+    Discordでログイン
+  </a>
+
+  <p style="margin-top:24px;color:#666;font-size:14px;">
+    ※ テスト用（アクセストークンがブラウザに渡ります）。本番はサーバー経由で実装してください。
+  </p>
 
   <script>
     const CLIENT_ID = "1434614207986274364";
-    const REDIRECT_URI = "https://urgoziita-del.github.io/opbr-qb9hack/テスト.html";
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-
-    if (!code) {
-      document.getElementById("status").textContent = "コードが見つかりませんでした。";
-    } else {
-      // 認証コードからアクセストークンを取得
-      fetch("https://discord.com/api/oauth2/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({
-          client_id: CLIENT_ID,
-          client_secret: "YOUR_CLIENT_SECRET", // ← あなたのBotの「Client Secret」に置き換える
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: REDIRECT_URI,
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.access_token) {
-          // アクセストークンからユーザー情報を取得
-          return fetch("https://discord.com/api/users/@me", {
-            headers: {
-              "Authorization": `Bearer ${data.access_token}`
-            }
-          });
-        } else {
-          throw new Error("トークンが取得できませんでした");
-        }
-      })
-      .then(res => res.json())
-      .then(user => {
-        document.getElementById("status").innerHTML = `
-          ✅ 認証完了！<br>
-          ユーザー名：${user.username}#${user.discriminator}<br>
-          ユーザーID：<b>${user.id}</b>
-        `;
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("status").textContent = "エラーが発生しました。";
-      });
-    }
+    const REDIRECT = "https://urgoziita-del.github.io/opbr-qb9hack/テスト.html";
+    const SCOPE = "identify"; // ユーザーID・ユーザー名が取れる最低限
+    // implicit flow: response_type=token (アクセストークンがURLハッシュで返る)
+    const url = "https://discord.com/oauth2/authorize"
+      + "?client_id=" + encodeURIComponent(CLIENT_ID)
+      + "&redirect_uri=" + encodeURIComponent(REDIRECT)
+      + "&response_type=token"
+      + "&scope=" + encodeURIComponent(SCOPE);
+    document.getElementById("login").href = url;
   </script>
 </body>
 </html>
