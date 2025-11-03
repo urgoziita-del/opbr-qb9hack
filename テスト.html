@@ -1,18 +1,62 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>Discord認証テスト</title>
+  <meta charset="UTF-8">
+  <title>認証結果</title>
 </head>
 <body style="text-align:center; margin-top:100px; font-family:sans-serif;">
-  <h2>Discord認証ページ</h2>
-  <p>以下のボタンからDiscordでログインしてください。</p>
+  <h2>Discord認証結果</h2>
+  <p id="status">認証情報を取得中...</p>
 
-  <a
-    href="https://discord.com/oauth2/authorize?client_id=1434614207986274364&response_type=code&redirect_uri=https%3A%2F%2Furgoziita-del.github.io%2Fopbr-qb9hack%2Fテスト.html&scope=identify"
-    style="background-color:#5865F2; color:white; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold;"
-  >
-    Discordでログイン
-  </a>
+  <script>
+    const CLIENT_ID = "1434614207986274364";
+    const REDIRECT_URI = "https://urgoziita-del.github.io/opbr-qb9hack/テスト.html";
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    if (!code) {
+      document.getElementById("status").textContent = "コードが見つかりませんでした。";
+    } else {
+      // 認証コードからアクセストークンを取得
+      fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: new URLSearchParams({
+          client_id: CLIENT_ID,
+          client_secret: "YOUR_CLIENT_SECRET", // ← あなたのBotの「Client Secret」に置き換える
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: REDIRECT_URI,
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.access_token) {
+          // アクセストークンからユーザー情報を取得
+          return fetch("https://discord.com/api/users/@me", {
+            headers: {
+              "Authorization": `Bearer ${data.access_token}`
+            }
+          });
+        } else {
+          throw new Error("トークンが取得できませんでした");
+        }
+      })
+      .then(res => res.json())
+      .then(user => {
+        document.getElementById("status").innerHTML = `
+          ✅ 認証完了！<br>
+          ユーザー名：${user.username}#${user.discriminator}<br>
+          ユーザーID：<b>${user.id}</b>
+        `;
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("status").textContent = "エラーが発生しました。";
+      });
+    }
+  </script>
 </body>
 </html>
