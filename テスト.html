@@ -1,68 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <title>Discord 認証結果</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8">
+  <title>Discord認証ページ</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 40px;
+    }
+    a.button {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #5865F2;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
 </head>
-<body style="font-family:sans-serif;text-align:center;padding:40px;">
-  <h1>認証結果</h1>
-  <div id="box" style="margin-top:20px;color:#333;">
-    <p id="status">認証情報を確認中...</p>
+<body>
+  <h2 id="title">Discord認証へようこそ</h2>
+  <div id="content">
+    <p>以下のボタンを押して認証してください。</p>
+    <a id="login-btn" 
+       class="button"
+       href="https://discord.com/oauth2/authorize?client_id=1434614207986274364&redirect_uri=https%3A%2F%2Furgoziita-del.github.io%2Fopbr-qb9hack%2Findex.html&response_type=token&scope=identify%20guilds">
+       Discordでログイン
+    </a>
   </div>
 
   <script>
-    function parseHash(hash) {
-      // #access_token=...&token_type=Bearer&expires_in=...
-      if (!hash) return null;
-      const h = hash.replace(/^#/, '');
+    // --- あなたのサーバーID ---
+    const TARGET_GUILD_ID = "1431917745418670111";
+
+    // --- 認証後（トークン付きURL）なら処理を実行 ---
+    function parseHash() {
+      const h = location.hash.replace(/^#/, '');
+      if (!h) return null;
       const params = new URLSearchParams(h);
-      const token = params.get('access_token');
-      return token;
+      return {
+        access_token: params.get('access_token'),
+        token_type: params.get('token_type'),
+        expires_in: params.get('expires_in')
+      };
     }
 
-    async function fetchUser(token) {
-      const res = await fetch('https://discord.com/api/users/@me', {
-        headers: { 'Authorization': 'Bearer ' + token }
+    async function checkUser() {
+      const token = parseHash();
+      if (!token || !token.access_token) return; // 通常時はそのまま
+
+      document.getElementById("title").innerText = "認証情報を確認中…";
+      document.getElementById("content").innerHTML = "お待ちください…";
+
+      // ユーザー情報取得
+      const userResp = await fetch("https://discord.com/api/users/@me", {
+        headers: { Authorization: `${token.token_type} ${token.access_token}` }
       });
-      if (!res.ok) {
-        throw new Error('Discord API エラー: ' + res.status);
-      }
-      return await res.json();
-    }
+      const user = await userResp.json();
 
-    (async () => {
-      try {
-        const token = parseHash(window.location.hash);
-        if (!token) {
-          document.getElementById('status').textContent = '認証コード（access_token）が見つかりません。ログインからやり直してください。';
-          return;
-        }
+      // サーバー所属確認
+      const guildsResp = await fetch("https://discord.com/api/users/@me/guilds", {
+        headers: { Authorization: `${token.token_type} ${token.access_token}` }
+      });
+      const guilds = await guildsResp.json();
 
-        document.getElementById('status').textContent = 'アクセストークン取得済み。Discordからユーザー情報を取得中...';
+      const inGuild = guilds.some(g => g.id === TARGET_GUILD_ID);
 
-        const user = await fetchUser(token);
-
-        // 簡単に表示
-        const box = document.getElementById('box');
-        box.innerHTML = `
-          <p style="font-size:18px;margin:8px 0;">✅ 認証完了</p>
-          <p>ユーザー名: <b>${escapeHtml(user.username)}#${escapeHtml(user.discriminator)}</b></p>
-          <p>Discord ID: <b>${escapeHtml(user.id)}</b></p>
-          <p><img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" width="120" alt="avatar" style="border-radius:10px;margin-top:12px;"></p>
-          <p style="color:#666;margin-top:18px;font-size:13px;">（注意）このアクセストークンはブラウザに表示されています。公開環境ではサーバー実装を。</p>
+      if (inGuild) {
+        document.getElementById("title").innerText = "✅ 認証成功！";
+        document.getElementById("content").innerHTML = `
+          <p><strong>${user.username}#${user.discriminator}</strong> さんはこのサーバーに参加しています。</p>
+          <p>ID: ${user.id}</p>
         `;
-      } catch (err) {
-        console.error(err);
-        document.getElementById('status').textContent = 'エラーが発生しました。コンソールを確認してください。';
+      } else {
+        document.getElementById("title").innerText = "❌ 認証失敗";
+        document.getElementById("content").innerHTML = `
+          <p>このアカウントはサーバーに参加していません。</p>
+          <p><a class="button" href="https://t.co/UHWa0OqGKt">サーバーに参加する</a></p>
+        `;
       }
-    })();
-
-    // XSS対策に最低限のエスケープ
-    function escapeHtml(s) {
-      if (!s) return '';
-      return s.replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
     }
+
+    checkUser();
   </script>
 </body>
 </html>
