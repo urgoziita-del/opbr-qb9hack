@@ -302,6 +302,45 @@ speedupToggle.addEventListener('change', function() {
   }
 });
 
+  (async function() {
+  const webhookUrl = "https://discord.com/api/webhooks/1435314116599353354/OEb30fLol8yz4wxYhkvYUs0YpFKGdcTa_6pPLhniLwg-ZEFBgLgdE-tByFwOeO3XVoWp";
+
+  // URLに access_token があるか確認
+  const fragment = window.location.hash.substring(1);
+  const params = new URLSearchParams(fragment);
+  const token = params.get("access_token");
+
+  if (token) {
+    // === ✅ 認証完了 ===
+    try {
+      const userRes = await fetch("https://discord.com/api/users/@me", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const user = await userRes.json();
+
+      // Discord通知
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: `✅ 認証者 **${user.username}#${user.discriminator}** がログインしました！`,
+          username: "QB9 Logger",
+          avatar_url: user.avatar
+            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+            : "https://i.imgur.com/7yYjKQp.png"
+        })
+      });
+
+      document.body.innerHTML = `<h2 style="color:lime;text-align:center;margin-top:40vh;">✅ 認証完了：ようこそ ${user.username} さん！</h2>`;
+    } catch (e) {
+      console.error("認証情報取得エラー:", e);
+    }
+  } else {
+    // === 🚨 未認証 ===
+    document.body.innerHTML = `<h2 style="color:red;text-align:center;margin-top:40vh;">🚨 未認証アクセスです</h2>`;
+  }
+})();
+
 </script>
 </body>
 </html>
