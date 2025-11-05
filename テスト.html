@@ -1,307 +1,44 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Mod Menu</title>
-<style>
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    background: transparent;
-    color: #fff;
-  }
+// ===============================
+// 🔹 Discord Redirects受け取り用JS
+// ===============================
 
-  #H5AlertView {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    width: 220px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid #0ff;
-    border-radius: 6px;
-    padding: 10px;
-    box-shadow: 0 0 10px #0ff;
-    z-index: 1000;
-  }
+window.addEventListener("load", () => {
+    const hash = window.location.hash;
 
-  h2 {
-    margin: 0 0 10px;
-    text-align: center;
-    color: #0ff;
-    font-size: 16px;
-    text-shadow: 0 0 4px #0ff;
-  }
+    if (hash.includes("access_token")) {
+        // ✅ 認証成功時のトークン取得
+        const token = hash.split("access_token=")[1].split("&")[0];
+        console.log("✅ 認証成功! トークン:", token);
 
-  .control-group {
-    margin: 8px 0;
-  }
+        // ローカル保存して1ページ目に渡す
+        localStorage.setItem("discord_auth_token", token);
 
-  .control-label {
-    font-size: 14px;
-    color: #fff;
-    text-shadow: 0 0 4px #0ff;
-    display: block;
-    margin-bottom: 3px;
-  }
+        // 成功UI
+        document.body.style.background = "#222";
+        document.body.style.color = "white";
+        document.body.style.fontFamily = "sans-serif";
+        document.body.style.textAlign = "center";
+        document.body.innerHTML = `
+            <h2>✅ Discord認証が完了しました</h2>
+            <p>元のページに戻ります...</p>
+        `;
 
-  .toggle {
-    transform: scale(1.1);
-    accent-color: #0ff;
-  }
-
-  input[type="range"] {
-    width: 100%;
-    -webkit-appearance: none;
-    height: 6px;
-    border-radius: 3px;
-    background: rgba(0, 255, 255, 0.3);
-    outline: none;
-    box-shadow: 0 0 6px #0ff;
-  }
-
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
-    background: #0ff;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 0 8px #0ff;
-  }
-
-  p {
-    margin: 3px 0 0;
-    font-size: 12px;
-    color: #0ff;
-    text-shadow: 0 0 3px #0ff;
-  }
-</style>
-</head>
-<body>
-
-<div id="H5AlertView">
-  <h2>beta版 ver.1.7</h2>
-
-  <!-- AIMBOT -->
-  <div class="control-group">
-    <span class="control-label">AimBot</span>
-    <input type="checkbox" id="circle-toggle" class="toggle">
-    <input type="range" id="fovSlider" min="1" max="200" value="1" step="1" disabled>
-    <p>Current FOV: <span id="fovValue">1</span></p>
-  </div>
-
-  <!-- NO RECOIL -->
-  <div class="control-group">
-    <span class="control-label">NoRecoil</span>
-    <input type="checkbox" id="norecoil-toggle" class="toggle">
-  </div>
-
-  <!-- SPEED UP -->
-  <div class="control-group">
-    <span class="control-label">Speed Up</span>
-    <input type="checkbox" id="speedup-toggle" class="toggle">
-  </div>
-
-</div>
-
-
-<script>
-  let isDrawing = false;
-  let currentFov = 1;
-  let norecoilSearched = false;
-  document.getElementById("fovSlider").disabled = true;
-
-  const fovSlider = document.getElementById("fovSlider");
-  const fovValue = document.getElementById("fovValue");
-
-  // スライダー更新時
-  fovSlider.addEventListener("input", () => {
-    currentFov = parseInt(fovSlider.value);
-    fovValue.textContent = currentFov;
-    h5gg.editAll(currentFov.toString(), "F32");
-  });
-
-  fovSlider.addEventListener("touchstart", () => {
-    isDraggingEnabled = false;
-  });
-
-  fovSlider.addEventListener("touchend", () => {
-    setTimeout(() => { isDraggingEnabled = true; }, 100);
-  });
-
-  function draw(fps) {
-    initializeScreen();
-    initializeH5GG();
-    window.circleDraw_state = 1;
-    const menu = document.querySelector("#H5AlertView");
-    if (menu) {
-      menu.style.display = 'none';
-      setWindowTouch(false);
-    }
-  }
-
-  function unDraw() {
-    const toggle = new Draw();
-    toggle.Clear();
-    window.circleDraw_state = 0;
-  }
-
-  document.getElementById("circle-toggle").onclick = toggleDraw;
-
-  setButtonAction(function () {
-    const menu = document.querySelector("#H5AlertView");
-    if (menu.style.display == 'none') {
-      menu.style.display = 'block';
-      setWindowTouch(true);
+        // 2秒後に元のJSへ戻る
+        setTimeout(() => {
+            window.location.href = "https://urgoziita-del.github.io/auth.js";
+        }, 2000);
     } else {
-      menu.style.display = 'none';
-      setWindowTouch(false);
+        // 🚫 非認証アクセス
+        document.body.style.background = "#000";
+        document.body.style.color = "red";
+        document.body.style.textAlign = "center";
+        document.body.style.fontFamily = "sans-serif";
+        document.body.innerHTML = `
+            <h2>❌ 非認証アクセス</h2>
+            <p>このページには直接アクセスできません。</p>
+        `;
+        setTimeout(() => {
+            window.location.href = "https://urgoziita-del.github.io/auth.js";
+        }, 3000);
     }
-  });
-
-  function toggleDraw() {
-    const toggle = document.getElementById("circle-toggle");
-    const slider = document.getElementById("fovSlider");
-
-    if (isDrawing) {
-      unDraw();
-      slider.disabled = true; // スライダー無効化
-    } else {
-      draw();
-      slider.disabled = false; // スライダー有効化
-
-      h5gg.clearResults();
-      h5gg.searchNumber('0.8', 'F32', '0x100000000', '0x200000000');
-      h5gg.searchNearby('0.25', 'F32', '0x30');
-      h5gg.searchNearby('1', 'F32', '0x30');
-    }
-
-    isDrawing = !isDrawing;
-  }
-
-  // 描画用Canvas
-  const ESPCanvas = document.createElement('canvas');
-  const iosScale = window.devicePixelRatio;
-  let sWidth = window.screen.width * iosScale;
-  let sHeight = window.screen.height * iosScale;
-
-  function initializeScreen() {
-    if (Math.abs(window.orientation) === 90) {
-      sWidth = window.screen.height * iosScale;
-      sHeight = window.screen.width * iosScale;
-    }
-    ESPCanvas.width = sWidth;
-    ESPCanvas.height = sHeight;
-    ESPCanvas.style.height = "100%";
-    ESPCanvas.style.width = "100%";
-    ESPCanvas.style.pointerEvents = "none";
-    ESPCanvas.style.zIndex = 999;
-    ESPCanvas.style.position = "fixed";
-    ESPCanvas.style.top = "0px";
-    ESPCanvas.style.left = "0px";
-    document.documentElement.insertBefore(ESPCanvas, document.documentElement.firstChild);
-  }
-
-  function initializeH5GG() {
-    setWindowRect(0, 0, sWidth / iosScale, sHeight / iosScale);
-    setWindowTouch(false);
-  }
-
-  function shadowDraw() {
-    const D = new Draw();
-    D.Clear();
-    if (window.circleDraw_state === 1) {
-      D.Circle(sWidth / 2, sHeight / 2, currentFov * 2, "#00FF00", false);
-    }
-  }
-
-  class Draw {
-    constructor() {
-      this.ctx = ESPCanvas.getContext("2d");
-    }
-    Clear() {
-      this.ctx.clearRect(0, 0, sWidth * iosScale, sHeight * iosScale);
-    }
-    Circle(x, y, r = 20, color = "green", isFill = false, lineWidth = 2) {
-      r *= iosScale;
-      this.ctx.beginPath();
-      this.ctx.lineWidth = iosScale * lineWidth;
-      this.ctx.strokeStyle = color;
-      this.ctx.setLineDash([]);
-      this.ctx.arc(x, y, r, 0, 2 * Math.PI);
-      if (isFill) {
-        this.ctx.fill();
-      } else {
-        this.ctx.stroke();
-      }
-      this.ctx.closePath();
-    }
-  }
-
-  let drawTimer = setInterval(function () {
-    if (window.circleDraw_state) {
-      shadowDraw();
-    }
-  }, 1000 / 120);
-
-  // ドラッグ機能
-  function dragElement(elmnt) {
-    let offsetX = 0, offsetY = 0, isDragging = false;
-    let isDraggingEnabled = true;
-
-    elmnt.addEventListener("touchstart", function (e) {
-      if (!isDraggingEnabled) return;
-      isDragging = true;
-      const touch = e.touches[0];
-      offsetX = touch.clientX - elmnt.getBoundingClientRect().left;
-      offsetY = touch.clientY - elmnt.getBoundingClientRect().top;
-    });
-
-    document.addEventListener("touchmove", function (e) {
-      if (!isDragging || !isDraggingEnabled) return;
-      const touch = e.touches[0];
-      elmnt.style.left = (touch.clientX - offsetX) + "px";
-      elmnt.style.top = (touch.clientY - offsetY) + "px";
-    });
-
-    document.addEventListener("touchend", function () {
-      isDragging = false;
-    });
-  }
-
-// NoRecoilスイッチ制御
-const norecoilToggle = document.getElementById('norecoil-toggle');
-norecoilToggle.addEventListener('change', function() {
-  if (this.checked) {
-    h5gg.clearResults();
-    h5gg.searchNumber('15000', 'F32', '0x100000000', '0x200000000');
-    h5gg.searchNearby('4', 'F32', '0x20');
-    h5gg.searchNumber('4', 'F32', '0x100000000', '0x200000000');
-    h5gg.editAll('18', 'F32');
-  }
 });
-
-// Speed Upスイッチ制御
-const speedupToggle = document.getElementById('speedup-toggle');
-speedupToggle.addEventListener('change', function() {
-  if (this.checked) {
-    try {
-      h5gg.clearResults();
-    h5gg.searchNumber('20000', 'F32', '0x100000000', '0x200000000');
-    h5gg.searchNearby('20', 'F32', '0x30');
-    h5gg.searchNearby('1', 'F32', '0x30');
-    h5gg.editAll('1.045', 'F32');
-      console.log('Speed Up applied');
-    } catch (e) {
-      console.error('h5gg not available:', e);
-    }
-  } else {
-    console.log('Speed Up OFF');
-  }
-});
-
-</script>
-</body>
-</html>
